@@ -1,5 +1,6 @@
 package de.tub.ise.ec;
 
+import com.sun.jmx.snmp.Timestamp;
 import de.tub.ise.ec.kv.FileSystemKVStore;
 import de.tub.ise.ec.kv.KeyValueInterface;
 import de.tub.ise.hermes.IRequestHandler;
@@ -14,19 +15,17 @@ public class SampleMessageHandler implements IRequestHandler {
 
     @Override
     public Response handleRequest(Request req) {
+
         KeyValueInterface store = new FileSystemKVStore();
 
-        List<Serializable> l = req.getItems();
-        for (Serializable s : l) {
-            System.out.println(s.getClass());
-
+        List<Serializable> list = req.getItems();
+        for (Serializable s : list) {
             store.store(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
         }
-        System.out.println("Received: " + store.getValue("monkey"));
+        System.out.println("File has been stored successfully with value: " + store.getValue("monkey"));
         store.delete("monkey");
-        System.out.println("-------------------------------------");
-        System.out.println(req.getItems());
-        return new Response("Echo okay for target: " + req.getTarget(), true, req, req.getItems());
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        return new Response("That's a response message for target: " + req.getTarget() + " || Server Timestamp >> " + timestamp, true, req, req.getItems());
     }
 
     @Override
