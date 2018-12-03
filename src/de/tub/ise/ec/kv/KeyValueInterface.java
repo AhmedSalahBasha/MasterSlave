@@ -1,4 +1,4 @@
-package de.tub.ise.ec.de.tub.ise.ec.kv;
+package de.tub.ise.ec.kv;
 
 import java.io.Serializable;
 import java.util.List;

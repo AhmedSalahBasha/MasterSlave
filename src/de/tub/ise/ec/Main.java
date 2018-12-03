@@ -1,47 +1,29 @@
 package de.tub.ise.ec;
-
-import de.tub.ise.ec.de.tub.ise.ec.kv.FileSystemKVStore;
-import de.tub.ise.ec.de.tub.ise.ec.kv.KeyValueInterface;
 import de.tub.ise.hermes.*;
-import java.io.IOException;
+
+import java.util.ArrayList;
 
 public class Main {
 
-    public static void main(String[] args) {
+	public static void main(String[] args) {
+		int port = 8888;
+		String host = "127.0.0.2"; // localhost
+		String target_id = "targetID";
 
-        // KEY-VALUE STORE TEST
-        String kvStorePath = "/Users/jacobeberhardt/Desktop/kv_store";
-        // Test kv store
-        KeyValueInterface store = new FileSystemKVStore(kvStorePath);
-        store.store("affe","butterbrot");
-        System.out.println("Received: " + store.getValue("affe"));
-        store.delete("affe");
-
-        // HERMES TEST
-        // configure
-        int port = 8080;
-        String host = "127.0.0.1"; //localhost
+		ArrayList<String> item = new ArrayList<>();
+		item.add("monkey");
+		item.add("banana");
+		// Client: create request
+		Request req = new Request(item, target_id, "localClient");
 
 
-        // register handler
-        RequestHandlerRegistry reg = RequestHandlerRegistry.getInstance();
-        reg.registerHandler("sampleMessageHandler", new SampleMessageHandler());
+		Sender sender = new Sender(host, port);
 
-        // start receiver
-        try {
-            Receiver receiver = new Receiver(port);
-            receiver.start();
-        } catch (IOException e) {
-            System.out.println("Connection error: " + e);
-        }
+		Response res = sender.sendMessage(req, 5000);
 
-        // send messages
-        Sender sender = new Sender(host, port);
-
-        Request req = new Request("Message","sampleMessageHandler","localSampleClient");
-
-        Response res = sender.sendMessage(req, 5000);
-        System.out.println("Received: " + res.getResponseMessage());
-
-    }
+		System.out.println(res.responseCode());
+		System.out.println(res.getResponseMessage());
+//		System.out.println("Received: " + res.getResponseMessage());
+		System.out.println("ITEMS: " + res.getItems());
+	}
 }
