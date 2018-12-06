@@ -3,7 +3,11 @@ package de.tub.ise.ec;
 import de.tub.ise.hermes.AsyncCallbackRecipient;
 import de.tub.ise.hermes.Response;
 
-public class AsyncClass implements AsyncCallbackRecipient {
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class ServerAsyncClass implements AsyncCallbackRecipient {
 
     public boolean isEchoSuccessful() {
         return echoSuccessful;
@@ -27,10 +31,15 @@ public class AsyncClass implements AsyncCallbackRecipient {
 
     @Override
     public void callback(Response resp) {
-        System.out.println("===== This is an Asynchronous Request =====");
-        System.out.println("Hello from response callback...");
-        System.out.println("Message: " + resp.getResponseMessage());
         setResponse(resp);
         setEchoSuccessful(resp.responseCode());
+        System.out.println("===== This is an Asynchronous Request From Client =====");
+        System.out.println("Message: " + resp.getResponseMessage());
+        //Using Date class
+        Date date = new Date();
+        //Pattern for showing milliseconds in the time "SSS"
+        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        String timestamp = sdf.format(date);
+        System.out.println("ServerAsyncClass: Timestamp AFTER Received a response from Server >> " + timestamp);
     }
 }

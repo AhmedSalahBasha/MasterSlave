@@ -8,12 +8,24 @@ import de.tub.ise.hermes.Request;
 import de.tub.ise.hermes.Response;
 
 import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class SlaveHandler implements IRequestHandler {
     @Override
     public Response handleRequest(Request req) {
+
+        //Using Date class
+        Date receiveDate = new Date();
+        //Pattern for showing milliseconds in the time "SSS"
+        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+
+        String receiveTimestamp = sdf.format(receiveDate);
+        System.out.println("Slave: Timestamp once received a Request from Server >> " + receiveTimestamp);
+
         KeyValueInterface store = new FileSystemKVStore();
 
         List<Serializable> list = req.getItems();
@@ -36,8 +48,11 @@ public class SlaveHandler implements IRequestHandler {
                 break;
             }
         }
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        return new Response("That's a response message for target: " + req.getTarget() + " || Slave Timestamp >> " + timestamp, true, req, req.getItems());
+
+        Date beforeSendBackDate = new Date();
+        String beforeSendBackTimestamp = sdf.format(beforeSendBackDate);
+        System.out.println("Slave: Timestamp Before send a response to Server >> " + beforeSendBackTimestamp);
+        return new Response("That's a response message for target: " + req.getTarget(), true, req, req.getItems());
     }
 
     @Override

@@ -9,7 +9,10 @@ import de.tub.ise.hermes.Response;
 import de.tub.ise.hermes.Sender;
 
 import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class ServerHandler implements IRequestHandler {
@@ -19,6 +22,13 @@ public class ServerHandler implements IRequestHandler {
 
     @Override
     public Response handleRequest(Request req) {
+
+        //Using Date class
+        Date receiveDate = new Date();
+        //Pattern for showing milliseconds in the time "SSS"
+        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        String receiveTimestamp = sdf.format(receiveDate);
+        System.out.println("Server: Timestamp once received a Request from Client >> " + receiveTimestamp);
 
         KeyValueInterface store = new FileSystemKVStore();
 
@@ -42,16 +52,27 @@ public class ServerHandler implements IRequestHandler {
                 break;
             }
         }
+
+        Date beforeSendRequestDate = new Date();
+        String beforeSendRequestTimestamp = sdf.format(beforeSendRequestDate);
+        System.out.println("Server: Timestamp BEFORE sending a NEW REQUEST to Slave >> " + beforeSendRequestTimestamp);
         // Server: create request
         Request slaveRequest = new Request(req.getItems(), "slaveHandlerID", "server");
         // Server: send request
         Sender sender = new Sender(host, port);
-        //Sending message Synchronously
-        Response slaveResponse = sender.sendMessage(slaveRequest, 5000);
-        System.out.println(slaveResponse.getResponseMessage());
 
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        return new Response("That's a response message for target: " + req.getTarget() + " || Server Timestamp >> " + timestamp, true, req, req.getItems());
+        //Sending message Asynchronously
+		SlaveAsyncClass async = new SlaveAsyncClass();
+		boolean callbackReturn = sender.sendMessageAsync(slaveRequest, async);
+
+        //Sending message Synchronously
+//        Response slaveResponse = sender.sendMessage(slaveRequest, 5000);
+//        System.out.println(slaveResponse.getResponseMessage());
+
+        Date beforeSendBackDate = new Date();
+        String beforeSendBackTimestamp = sdf.format(beforeSendBackDate);
+        System.out.println("Server: Timestamp BEFORE sending a Response back to client >> " + beforeSendBackTimestamp);
+        return new Response("That's a response message for target: " + req.getTarget(), true, req, req.getItems());
     }
 
     @Override
