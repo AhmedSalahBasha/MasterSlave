@@ -18,7 +18,7 @@ import java.util.List;
 public class ServerHandler implements IRequestHandler {
 
     static int port = 8080;
-    static String host = "127.0.0.2"; // localhost
+    static String host = "127.0.0.2"; // slave
 
     @Override
     public Response handleRequest(Request req) {
@@ -53,6 +53,7 @@ public class ServerHandler implements IRequestHandler {
             }
         }
 
+
         Date beforeSendRequestDate = new Date();
         String beforeSendRequestTimestamp = sdf.format(beforeSendRequestDate);
         System.out.println("Server: Timestamp BEFORE sending a NEW REQUEST to Slave >> " + beforeSendRequestTimestamp);
@@ -62,17 +63,24 @@ public class ServerHandler implements IRequestHandler {
         Sender sender = new Sender(host, port);
 
         //Sending message Asynchronously
-		SlaveAsyncClass async = new SlaveAsyncClass();
-		boolean callbackReturn = sender.sendMessageAsync(slaveRequest, async);
+//		SlaveAsyncClass async = new SlaveAsyncClass();
+//		boolean callbackReturn = sender.sendMessageAsync(slaveRequest, async);
 
         //Sending message Synchronously
-//        Response slaveResponse = sender.sendMessage(slaveRequest, 5000);
-//        System.out.println(slaveResponse.getResponseMessage());
+        Response slaveResponse = sender.sendMessage(slaveRequest, 5000);
+        System.out.println(slaveResponse.getResponseMessage());
 
         Date beforeSendBackDate = new Date();
         String beforeSendBackTimestamp = sdf.format(beforeSendBackDate);
-        System.out.println("Server: Timestamp BEFORE sending a Response back to client >> " + beforeSendBackTimestamp);
-        return new Response("That's a response message for target: " + req.getTarget(), true, req, req.getItems());
+        List<Serializable> serverTimestampList = new ArrayList<>();
+        serverTimestampList.add(receiveTimestamp);
+        serverTimestampList.add(beforeSendRequestTimestamp);
+        serverTimestampList.add(beforeSendBackTimestamp);
+        serverTimestampList.addAll(slaveResponse.getItems());
+
+
+//        System.out.println("Server: Timestamp BEFORE sending a Response back to client >> " + beforeSendBackTimestamp);
+        return new Response("That's a response message for target: " + req.getTarget() + "|| And the Server Timestamp is: " + beforeSendBackTimestamp, true, req, serverTimestampList);
     }
 
     @Override

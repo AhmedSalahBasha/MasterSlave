@@ -51,8 +51,11 @@ public class SlaveHandler implements IRequestHandler {
 
         Date beforeSendBackDate = new Date();
         String beforeSendBackTimestamp = sdf.format(beforeSendBackDate);
+        List<Serializable> slaveTimestampList = new ArrayList<>();
+        slaveTimestampList.add(receiveTimestamp);
+        slaveTimestampList.add(beforeSendBackTimestamp);
         System.out.println("Slave: Timestamp Before send a response to Server >> " + beforeSendBackTimestamp);
-        return new Response("That's a response message for target: " + req.getTarget(), true, req, req.getItems());
+        return new Response("That's a response message for target: " + req.getTarget() + "|| And the Slave Timestamp is: " + beforeSendBackTimestamp, true, req, slaveTimestampList);
     }
 
     @Override
