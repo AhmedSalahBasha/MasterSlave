@@ -17,16 +17,15 @@ import java.util.List;
 public class SlaveHandler implements IRequestHandler {
     @Override
     public Response handleRequest(Request req) {
-
         //Using Date class
         Date receiveDate = new Date();
         //Pattern for showing milliseconds in the time "SSS"
         DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
         String receiveTimestamp = sdf.format(receiveDate);
-        System.out.println("Slave: Timestamp once received a Request from Server >> " + receiveTimestamp);
+        System.out.println("START Slave: " + receiveTimestamp);
 
-        KeyValueInterface store = new FileSystemKVStore();
+        KeyValueInterface store = new FileSystemKVStore(".//slave/");
 
         List<Serializable> list = req.getItems();
         for (Serializable s : list) {
@@ -39,8 +38,8 @@ public class SlaveHandler implements IRequestHandler {
                 System.out.println("Value is :  " + valuesObject.toString());
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("update")) {
-                store.store(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
-                System.out.println("File has been updated on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
+                store.update(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
+             //   System.out.println("File has been updated on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("delete")) {
                 store.delete(((ArrayList) s).get(0).toString());
@@ -54,7 +53,7 @@ public class SlaveHandler implements IRequestHandler {
         List<Serializable> slaveTimestampList = new ArrayList<>();
         slaveTimestampList.add(receiveTimestamp);
         slaveTimestampList.add(beforeSendBackTimestamp);
-        System.out.println("Slave: Timestamp Before send a response to Server >> " + beforeSendBackTimestamp);
+        System.out.println("After Commit Slave: " + beforeSendBackTimestamp);
         return new Response("That's a response message for target: " + req.getTarget() + "|| And the Slave Timestamp is: " + beforeSendBackTimestamp, true, req, slaveTimestampList);
     }
 

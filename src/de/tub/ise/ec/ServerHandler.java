@@ -8,6 +8,8 @@ import de.tub.ise.hermes.Request;
 import de.tub.ise.hermes.Response;
 import de.tub.ise.hermes.Sender;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -19,6 +21,11 @@ public class ServerHandler implements IRequestHandler {
 
     static int port = 8080;
     static String host = "127.0.0.2"; // slave
+    static DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    static String receiveTimestamp;
+    static String beforeSendRequestTimestamp;
+    static List <String[]> timestampsArray = new ArrayList<String[]>();
+    static int id = 0;
 
     @Override
     public Response handleRequest(Request req) {
@@ -26,14 +33,14 @@ public class ServerHandler implements IRequestHandler {
         //Using Date class
         Date receiveDate = new Date();
         //Pattern for showing milliseconds in the time "SSS"
-        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        String receiveTimestamp = sdf.format(receiveDate);
-        System.out.println("Server: Timestamp once received a Request from Client >> " + receiveTimestamp);
-
-        KeyValueInterface store = new FileSystemKVStore();
-
+        System.out.println("----------------------------------- ");
+        receiveTimestamp = sdf.format(receiveDate);
+        System.out.println("START MASTER: " + receiveTimestamp);
+        String mod="";
+        KeyValueInterface store = new FileSystemKVStore(".//master/");
         List<Serializable> list = req.getItems();
         for (Serializable s : list) {
+            mod = ((ArrayList) s).get(3).toString();
             if (((ArrayList) s).get(2).toString().equals("create")) {
                 store.store(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
                 System.out.println("File has been stored on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
@@ -43,8 +50,8 @@ public class ServerHandler implements IRequestHandler {
                 System.out.println("Value is :  " + valuesObject.toString());
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("update")) {
-                store.store(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
-                System.out.println("File has been updated on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
+                store.update(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
+             //   System.out.println("File has been updated on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("delete")) {
                 store.delete(((ArrayList) s).get(0).toString());
@@ -52,39 +59,91 @@ public class ServerHandler implements IRequestHandler {
                 break;
             }
         }
-
-
         Date beforeSendRequestDate = new Date();
-        String beforeSendRequestTimestamp = sdf.format(beforeSendRequestDate);
-        System.out.println("Server: Timestamp BEFORE sending a NEW REQUEST to Slave >> " + beforeSendRequestTimestamp);
+        beforeSendRequestTimestamp = sdf.format(beforeSendRequestDate);
+        System.out.println("After Commit MASTER: " + beforeSendRequestTimestamp);
         // Server: create request
         Request slaveRequest = new Request(req.getItems(), "slaveHandlerID", "server");
         // Server: send request
         Sender sender = new Sender(host, port);
+        Response slaveResponse = null;
 
-        //Sending message Asynchronously
-//		SlaveAsyncClass async = new SlaveAsyncClass();
-//		boolean callbackReturn = sender.sendMessageAsync(slaveRequest, async);
+        if( mod.equals("Sync"))
+        {
+            slaveResponse = syncslave(sender,slaveRequest);
+            preparedates(slaveResponse);
+        }
+        else if (mod.equals("ASync"))
+        {
+            ASyncslave(sender,slaveRequest);
+        }
 
+        return new Response("That's a response message for target:  + req.getTarget() + || And the Server Timestamp is:  + beforeSendBackTimestamp", true, req, req.getItems());
+    }
+
+
+    @Override
+    public boolean requiresResponse() {
+        return true;
+    }
+    public Response syncslave(Sender sender,Request slaveRequest)
+    {
         //Sending message Synchronously
-        Response slaveResponse = sender.sendMessage(slaveRequest, 5000);
-        System.out.println(slaveResponse.getResponseMessage());
+         Response slaveResponse = sender.sendMessage(slaveRequest, 5000);
+       // System.out.println(slaveResponse.getResponseMessage());
+        return  slaveResponse;
+    }
+    public void ASyncslave(Sender sender,Request slaveRequest)
+    {
+        //Sending message Asynchronously
+        SlaveAsyncClass async = new SlaveAsyncClass();
+        Response response = null;
+        boolean responseb = sender.sendMessageAsync(slaveRequest,async);
 
+    }
+    public static void preparedates(Response slaveResponse)
+    {   id++;
         Date beforeSendBackDate = new Date();
         String beforeSendBackTimestamp = sdf.format(beforeSendBackDate);
+        System.out.println(" Start Slave " + slaveResponse.getItems().get(0));
+        System.out.println(" END Slave " + slaveResponse.getItems().get(1));
+        System.out.println(" END MASTER(recieve Response from Slave): " + beforeSendBackTimestamp);
+        System.out.println("----------------------------------- ");
         List<Serializable> serverTimestampList = new ArrayList<>();
         serverTimestampList.add(receiveTimestamp);
         serverTimestampList.add(beforeSendRequestTimestamp);
         serverTimestampList.add(beforeSendBackTimestamp);
         serverTimestampList.addAll(slaveResponse.getItems());
+        if(id == 1)
+        {
+            timestampsArray.add (new String[] { "Id,", "Start Master,", "Commit Master,", "Start Slave,", "Commit Slave,", "End Master," });
+        }
+        timestampsArray.add(new String[]{
+                Integer.toString(id) + ",",
+                receiveTimestamp + ",",
+                beforeSendRequestTimestamp + ",",
+                slaveResponse.getItems().get(0) + ",",
+                slaveResponse.getItems().get(1) + ",",
+                beforeSendBackTimestamp + ","}
+        );
+        try {
+            creatFile("master",timestampsArray);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-
-//        System.out.println("Server: Timestamp BEFORE sending a Response back to client >> " + beforeSendBackTimestamp);
-        return new Response("That's a response message for target: " + req.getTarget() + "|| And the Server Timestamp is: " + beforeSendBackTimestamp, true, req, serverTimestampList);
     }
+    public static void creatFile(String file,List<String[]> array) throws IOException {
 
-    @Override
-    public boolean requiresResponse() {
-        return true;
+        FileWriter writer = new FileWriter(file + ".csv");
+        int size = array.size();
+        for (int i = 0; i < array.size(); i++) {
+            for (int j = 0; j < array.get(i).length; j++) {
+                writer.write(array.get(i)[j]);
+            }
+            if (i < size - 1)
+                writer.write("\n");
+        }
+        writer.close();
     }
 }

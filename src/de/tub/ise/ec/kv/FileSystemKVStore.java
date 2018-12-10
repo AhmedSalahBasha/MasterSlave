@@ -84,20 +84,37 @@ public class FileSystemKVStore implements KeyValueInterface {
 					e.printStackTrace();
 				}
 			}
+
 		}
 	}
 
-	/**
-	 * deletes a key value pair on the file system
-	 *
-	 * @param key
-	 */
-	public void delete(String key) {
+	@Override
+	public void update(String key, Serializable value) {
 		File f = new File(rootDir + File.separator + key);
-		if (!f.isDirectory()) {
-			if (f.isFile()) {
-				f.delete();
+		if (f.isFile()) {
+				try {
+					FileOutputStream fo = new FileOutputStream(f);
+					ObjectOutputStream oo = new ObjectOutputStream(fo);
+					oo.writeObject(value);
+					oo.close();
+				} catch (IOException e) {
+					System.err.println("Writing value to file failed for key " + key + ".");
+					e.printStackTrace();
+				}
+			}
+
+		}
+		/**
+		 * deletes a key value pair on the file system
+		 *
+		 * @param key
+		 */
+		public void delete(String key) {
+			File f = new File(rootDir + File.separator + key);
+			if (!f.isDirectory()) {
+				if (f.isFile()) {
+					f.delete();
+				}
 			}
 		}
 	}
-}
