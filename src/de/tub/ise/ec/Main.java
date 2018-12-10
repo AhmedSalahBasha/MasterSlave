@@ -36,7 +36,7 @@ public class Main {
 
 		// create a List which contains Timestamps Array
 		List<String[]> timestampsArray = new ArrayList<String[]>();
-		timestampsArray.add(new String[] { "Id", "client_start", "master_receiveTimestamp", "master_beforeSendRequestTimestamp", "master_beforeSendBackTimestamp", "slave_receiveTimestamp", "slave_beforeSendBackTimestamp", "client_get_response" });
+		timestampsArray.add(new String[] { "Id,", "client_start,", "master_receiveTimestamp,", "master_beforeSendRequestTimestamp,", "master_beforeSendBackTimestamp,", "slave_receiveTimestamp,", "slave_beforeSendBackTimestamp,", "client_get_response" });
 
 
 		Timer t = new Timer();
@@ -44,7 +44,15 @@ public class Main {
 			int count = 1;
 			@Override
 			public void run() {
-				if (count == 5) return;
+				if (count == 5) {
+					try {
+						creatFile("file",timestampsArray);
+						return;
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+
 				//Using Date class
 				Date beforeDate = new Date();
 				String beforeTimestamp = sdf.format(beforeDate);
@@ -63,26 +71,30 @@ public class Main {
 				String slave_receiveTimestamp = responseList.get(3).toString();
 				String slave_beforeSendBackTimestamp = responseList.get(4).toString();
 				timestampsArray.add(new String[] {
-						Integer.toString(count),
-						beforeTimestamp,
-						master_receiveTimestamp,
-						master_beforeSendRequestTimestamp,
-						master_beforeSendBackTimestamp,
-						slave_receiveTimestamp,
-						slave_beforeSendBackTimestamp,
+						Integer.toString(count) + ",",
+						beforeTimestamp + ",",
+						master_receiveTimestamp + ",",
+						master_beforeSendRequestTimestamp + ",",
+						master_beforeSendBackTimestamp + ",",
+						slave_receiveTimestamp + ",",
+						slave_beforeSendBackTimestamp + ",",
 						afterTimestamp});
 				count = count + 1;
 			}
+
+
 		}, 0, 1000);
 
+
 		try {
-			PrintWriter writer = new PrintWriter("test.txt", "UTF-8");
-			for (int i = 0; i < timestampsArray.size(); i++) {
-				for (int j = 0; j < timestampsArray.get(i).length; j++) {
-					writer.println(timestampsArray.get(i)[j]);
-				}
-			}
-			writer.close();
+
+//			PrintWriter writer = new PrintWriter("test.txt", "UTF-8");
+//			for (int i = 0; i < timestampsArray.size(); i++) {
+//				for (int j = 0; j < timestampsArray.get(i).length; j++) {
+//					writer.println(timestampsArray.get(i)[j]);
+//				}
+//			}
+//			writer.close();
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -93,13 +105,20 @@ public class Main {
 	public static void creatFile(String file,List<String[]> array) throws IOException {
 		FileWriter writer = new FileWriter(file + ".csv");
 		int size = array.size();
-		for (int i = 0; i < size; i++) {
-			String str = array.get(i).toString();
-			writer.write(str);
+//		for (String[] str : array)
+//		{
+//			writer.write(str);
+//		}
+		for (int i = 0; i < array.size(); i++) {
+				for (int j = 0; j < array.get(i).length; j++) {
+					writer.write(array.get(i)[j]);
+				}
 			if (i < size - 1)
 				writer.write("\n");
+			}
 
-		}
+
+
 		writer.close();
 	}
 }

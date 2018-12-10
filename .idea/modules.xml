@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/ec2018-assignment2.iml" filepath="$PROJECT_DIR$/ec2018-assignment2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/master-slave-task.iml" filepath="$PROJECT_DIR$/master-slave-task.iml" />
     </modules>
   </component>
 </project>
