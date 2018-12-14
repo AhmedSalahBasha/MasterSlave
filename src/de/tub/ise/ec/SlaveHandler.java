@@ -15,50 +15,76 @@ import java.util.Date;
 import java.util.List;
 
 public class SlaveHandler implements IRequestHandler {
+    static String  beforeSendBackTimestamp;
+    static DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    static String receiveTimestamp;
+    static Response response;
+    static List<Serializable> slaveTimestampList ;
     @Override
     public Response handleRequest(Request req) {
+
+        slaveTimestampList = new ArrayList<>();
         //Using Date class
         Date receiveDate = new Date();
         //Pattern for showing milliseconds in the time "SSS"
-        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-
-        String receiveTimestamp = sdf.format(receiveDate);
+        receiveTimestamp = sdf.format(receiveDate);
         System.out.println("START Slave: " + receiveTimestamp);
-
         KeyValueInterface store = new FileSystemKVStore(".//slave/");
-
         List<Serializable> list = req.getItems();
+    if(req.getOriginator().equals("Master"))
+    {
         for (Serializable s : list) {
             if (((ArrayList) s).get(2).toString().equals("create")) {
                 store.store(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
                 System.out.println("File has been stored on Slave successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
-                break;
-            } else if (((ArrayList) s).get(2).toString().equals("read")) {
-                Object valuesObject = store.getValue(((ArrayList) s).get(0).toString());
-                System.out.println("Value is :  " + valuesObject.toString());
-                break;
+                preparedates();
+                response = new Response("That's a response message for target: " + req.getTarget() + "|| And the Slave Timestamp is: " + beforeSendBackTimestamp, true, req, slaveTimestampList);
             } else if (((ArrayList) s).get(2).toString().equals("update")) {
                 store.update(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
-             //   System.out.println("File has been updated on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
+                //   System.out.println("File has been updated on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
+                preparedates();
+                response = new Response("That's a response message for target: " + req.getTarget() + "|| And the Slave Timestamp is: " + beforeSendBackTimestamp, true, req, slaveTimestampList);
+
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("delete")) {
                 store.delete(((ArrayList) s).get(0).toString());
                 System.out.println("File has been deleted on Slave successfully!");
+                preparedates();
+                response = new Response("That's a response message for target: " + req.getTarget() + "|| And the Slave Timestamp is: " + beforeSendBackTimestamp, true, req, slaveTimestampList);
                 break;
             }
         }
 
-        Date beforeSendBackDate = new Date();
-        String beforeSendBackTimestamp = sdf.format(beforeSendBackDate);
-        List<Serializable> slaveTimestampList = new ArrayList<>();
-        slaveTimestampList.add(receiveTimestamp);
-        slaveTimestampList.add(beforeSendBackTimestamp);
+    }
+    else if (req.getOriginator().equals("Client"))
+        {
+            for (Serializable s : list) {
+
+                if (((ArrayList) s).get(2).toString().equals("read")) {
+                    Object valuesObject = store.getValue(((ArrayList) s).get(0).toString());
+                    System.out.println("Value is :  " + valuesObject.toString());
+                    preparedates();
+                    response = new Response("Value is :  " + valuesObject.toString(), true, req, slaveTimestampList);
+                    break;
+                }
+            }
+        }
+
         System.out.println("After Commit Slave: " + beforeSendBackTimestamp);
-        return new Response("That's a response message for target: " + req.getTarget() + "|| And the Slave Timestamp is: " + beforeSendBackTimestamp, true, req, slaveTimestampList);
+    return response;
+
     }
 
     @Override
     public boolean requiresResponse() {
         return true;
+    }
+
+    public static void preparedates()
+    {
+        Date beforeSendBackDate = new Date();
+        beforeSendBackTimestamp = sdf.format(beforeSendBackDate);
+        slaveTimestampList.add(receiveTimestamp);
+        slaveTimestampList.add(beforeSendBackTimestamp);
     }
 }

@@ -41,5 +41,6 @@ public class ServerAsyncClass implements AsyncCallbackRecipient {
         DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         String timestamp = sdf.format(date);
         System.out.println("ServerAsyncClass: Timestamp AFTER Received a response from Server >> " + timestamp);
+        Main.benchmarkUpdate(resp,Main.startTimefromClient,Main.endTimefromClient);
     }
 }
