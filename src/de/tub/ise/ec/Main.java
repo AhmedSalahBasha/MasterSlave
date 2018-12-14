@@ -113,16 +113,15 @@ public class Main {
 					System.out.println(res.getResponseMessage());
 					//Sending message Asynchronously
 						//ServerAsyncClass async = new ServerAsyncClass();
-						//boolean callbackReturn = sender.sendMessageAsync(req, async);
+					//	boolean callbackReturn = sender.sendMessageAsync(req, async);
 					// create a List which contains Timestamps Array
 				}
 				//System.out.println(res.getResponseMessage());
-				Date afterDate = new Date();
-				endTimefromClient = sdf.format(afterDate);
-				System.out.println("End Client" + endTimefromClient);
+
+
 				if(operationtype.equals("update") && mod.equals("Sync"))
 				{
-					benchmarkUpdate(res,startTimefromClient,endTimefromClient);
+					benchmarkUpdate(res,startTimefromClient);
 				}
 				count = count + 1;
 //				try {
@@ -133,8 +132,11 @@ public class Main {
 			}
 		}, 0, 1000);
 	}
-	public static void benchmarkUpdate(Response res,String startTimefromClient,String endTimefromClient)
+	public static void benchmarkUpdate(Response res,String startTimefromClient)
 	{
+		Date afterDate = new Date();
+		endTimefromClient = sdf.format(afterDate);
+		System.out.println("End Client" + endTimefromClient);
 		List<Serializable> responseList = res.getItems();
 		String master_receiveTimestamp = responseList.get(0).toString();
 		String master_beforeSendRequestTimestamp = responseList.get(1).toString();

@@ -23,7 +23,7 @@ public class ServerHandler implements IRequestHandler {
     static DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     static String receiveTimestamp;
     static String beforeSendRequestTimestamp;
-    static List <String[]> timestampsArray; //= new ArrayList<String[]>();
+    static List <String[]> timestampsArray = new ArrayList<String[]>();
     static int id = 0 ;
     static String mod ="";
     static List<Serializable> serverTimestampList ;//= new ArrayList<>();
