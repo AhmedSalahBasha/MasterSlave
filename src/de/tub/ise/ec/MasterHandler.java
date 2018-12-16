@@ -28,24 +28,28 @@ public class MasterHandler implements IRequestHandler {
     static List<Serializable> serverTimestampList ;//= new ArrayList<>();
     static Response response;
 
+    /**
+     * this handelRequest function is overridden the original function in hermes
+     * it takes the request object as a parameter, then it saves the timestamp once it receives the request,
+     * then checks the type of operation {CRUD}, then it execute the operation on the hard-disk with key and value,
+     * then it calls the function sendRequestToSlave to decide whether
+     * to send a request synchronous or asynchronous to slave,
+     * then it create a response and send back an arrayList of all timestamps inside Master and Slave to the Client
+     * @param req: an arrayList coming from client has the Key, Value, operationType and requestType
+     * @return a response object to client with an arrayList of all timestamps and a response message
+     */
     @Override
     public Response handleRequest(Request req) {
         serverTimestampList = new ArrayList<>();
-        //timestampsArray = new ArrayList<String[]>();
-        //Using Date class
         Date receiveDate = new Date();
-        //Pattern for showing milliseconds in the time "SSS"
-        System.out.println("----------------------------------- ");
         receiveTimestamp = sdf.format(receiveDate);
-        System.out.println("START MASTER: " + receiveTimestamp);
         KeyValueInterface store = new FileSystemKVStore(".//master/");
         List<Serializable> list = req.getItems();
         for (Serializable s : list) {
             mod = ((ArrayList) s).get(3).toString();
             if (((ArrayList) s).get(2).toString().equals("create")) {
                 store.store(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
-                System.out.println();
-                sendrequesttoslave(req);
+                sendRequestToSlave(req);
                 response = new Response("File has been stored on Master successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()),true,req,serverTimestampList);
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("read")) {
@@ -54,14 +58,12 @@ public class MasterHandler implements IRequestHandler {
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("update")) {
                 store.update(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
-               System.out.println("File has been updated on Master successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
-                sendrequesttoslave(req);
+                sendRequestToSlave(req);
                 response = new Response("File has been updated on Master successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()),true,req,serverTimestampList);
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("delete")) {
                 store.delete(((ArrayList) s).get(0).toString());
-                System.out.println("File has been deleted on Master successfully!");
-                sendrequesttoslave(req);
+                sendRequestToSlave(req);
                 response = new Response("File has been deleted on Master successfully!",true,req,serverTimestampList);
                 break;
             }
@@ -69,20 +71,23 @@ public class MasterHandler implements IRequestHandler {
         return response;
     }
 
-    // Master: create request
-    public void sendrequesttoslave(Request req) {
+    /**
+     *a simple function to save the timestamp directly after executing the operation on hard-disk
+     * then it creates a request and assign this request to a specific handler and give this request an ID by setOriginator function
+     * then it checks the requestType whether it's Async or Sync, then call another function to send the request
+     * @param req an arrayList coming from client has the Key, Value, operationType and requestType
+     */
+    public void sendRequestToSlave(Request req) {
         Date beforeSendRequestDate = new Date();
         beforeSendRequestTimestamp = sdf.format(beforeSendRequestDate);
-        System.out.println("After Commit MASTER: " + beforeSendRequestTimestamp);
         Request slaveRequest = new Request(req.getItems(), "slaveHandlerID", "server");
         slaveRequest.setOriginator("Master");
-        // Master: send request
         Sender sender = new Sender(host, port);
         Response slaveResponse = null;
         if( mod.equals("Sync"))
         {
             slaveResponse = syncslave(sender,slaveRequest);
-            preparedates(slaveResponse);
+            prepareDates(slaveResponse);
         }
         else if (mod.equals("ASync"))
         {
@@ -95,28 +100,39 @@ public class MasterHandler implements IRequestHandler {
         return true;
     }
 
+    /**
+     * this function send the request Synchronously from Master to Slave
+     * @param sender the sender object which has the host and port of the destination (slave)
+     * @param slaveRequest the request object which has the the key, value and the operationType
+     * @return the response back to master after finish all operations at Slave
+     */
     public Response syncslave(Sender sender,Request slaveRequest) {
-        //Sending message Synchronously
-         Response slaveResponse = sender.sendMessage(slaveRequest, 5000);
-       // System.out.println(slaveResponse.getResponseMessage());
+        Response slaveResponse = sender.sendMessage(slaveRequest, 5000);
         return  slaveResponse;
     }
 
+    /**
+     * it creates a new instance from SlaveAsync class which has the callback function which has the
+     * response object coming from Slave
+     * this function send the request ASynchronously from Master to Slave
+     * @param sender the sender object which has the host and port of the destination (slave)
+     * @param slaveRequest the request object which has the the key, value and the operationType
+     */
     public void ASyncslave(Sender sender,Request slaveRequest) {
-        //Sending message Asynchronously
         SlaveAsync async = new SlaveAsync();
-        Response response = null;
         boolean responseb = sender.sendMessageAsync(slaveRequest,async);
     }
 
-    public static void preparedates(Response slaveResponse) {
+    /**
+     * this helper function is to save the timestamps before send back the response to Client
+     * and it store all timestamps on Slave and Master in one arrayList and prepare a header for an excel sheet
+     * then it calls the function createFile to save the file as masterAsync.csv and pass the whole arrayList to it.
+     * @param slaveResponse is the response object coming from Slave which has the arrayList of all timestamps on Slave
+     */
+    public static void prepareDates(Response slaveResponse) {
         id++;
         Date beforeSendBackDate = new Date();
         String beforeSendBackTimestamp = sdf.format(beforeSendBackDate);
-        System.out.println(" Start Slave " + slaveResponse.getItems().get(0));
-        System.out.println(" END Slave " + slaveResponse.getItems().get(1));
-        System.out.println(" END MASTER(recieve Response from Slave): " + beforeSendBackTimestamp);
-        System.out.println("----------------------------------- ");
         serverTimestampList.add(receiveTimestamp);
         serverTimestampList.add(beforeSendRequestTimestamp);
         serverTimestampList.add(beforeSendBackTimestamp);
@@ -136,14 +152,20 @@ public class MasterHandler implements IRequestHandler {
                     beforeSendBackTimestamp + ","}
             );
             try {
-                creatFile("masterAsync",timestampsArray);
+                createFile("masterAsync",timestampsArray);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    public static void creatFile(String file,List<String[]> array) throws IOException {
+    /**
+     * a simple function to create a file and store it on the hard-disk
+     * @param file is the name of the file
+     * @param array is the arrayList which will be saved as a record inside the CSV file
+     * @throws IOException
+     */
+    public static void createFile(String file,List<String[]> array) throws IOException {
         FileWriter writer = new FileWriter(file + ".csv");
         int size = array.size();
         for (int i = 0; i < array.size(); i++) {

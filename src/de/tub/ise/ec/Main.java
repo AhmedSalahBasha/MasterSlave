@@ -5,6 +5,13 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+
+/**
+ * @author Ahmed Basha
+ * @author Joseph Francis
+ * @since 16.04.2018 - TU Berlin
+ * @version 1.0
+ */
 public class Main {
 
 	static Scanner sc = new Scanner(System.in);
@@ -66,7 +73,8 @@ public class Main {
 
 
 	/**
-	 * prepare an arrayList with key, value, operationType and mode, then create the request and send it to master
+	 * prepare an arrayList with key, value, operationType and mode, then create the request,
+	 * then send it to master every one second
 	 * @param operationtype: the operation type { CRUD - Create / Read / Update / Delete }
 	 * @param mode: the request type {  Sync / ASync }
 	 * @param numrequest: how many requests the client will send to the our system
@@ -112,15 +120,12 @@ public class Main {
 				Sender sender = new Sender(host, port);
 				Date beforeDate = new Date();
 				startTimefromClient = sdf.format(beforeDate);
-				System.out.println("Start Client" + startTimefromClient);
 				if(mode.equals("Sync")) {
-					res = sender.sendMessage(req, 50000);
-					System.out.println(res.getResponseMessage());
+					res = sender.sendMessage(req, 5000);
 				}
 				else if(mode.equals("ASync")) {
-					res = sender.sendMessage(req, 50000);
+					res = sender.sendMessage(req, 5000);
 					writeAsyncClientTimestamp();
-					System.out.println(res.getResponseMessage());
 				}
 				if(operationtype.equals("update") && mode.equals("Sync")) {
 					benchmarkUpdate(res,startTimefromClient);
@@ -136,7 +141,6 @@ public class Main {
 	private static void writeAsyncClientTimestamp() {
 		Date afterDate = new Date();
 		endTimefromClient = sdf.format(afterDate);
-		System.out.println("End Client" + endTimefromClient);
 		clientAsyncList.add(new String[] {
 				startTimefromClient + ",",
 				endTimefromClient
@@ -151,7 +155,6 @@ public class Main {
 	public static void benchmarkUpdate(Response res,String startTimefromClient) {
 		Date afterDate = new Date();
 		endTimefromClient = sdf.format(afterDate);
-		System.out.println("End Client" + endTimefromClient);
 		List<Serializable> responseList = res.getItems();
 		String master_receiveTimestamp = responseList.get(0).toString();
 		String master_beforeSendRequestTimestamp = responseList.get(1).toString();

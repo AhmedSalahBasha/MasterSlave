@@ -9,6 +9,9 @@ public class Slave { //Receiver
 
     static int port = 8080;
 
+    /**
+     * A simple main function to run the slave server machine
+     */
     public static void main(String[] args) {
         RequestHandlerRegistry reg = RequestHandlerRegistry.getInstance();
         reg.registerHandler("slaveHandlerID", new SlaveHandler());
