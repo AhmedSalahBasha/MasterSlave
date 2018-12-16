@@ -16,7 +16,7 @@ import java.util.List;
 
 public class SlaveHandler implements IRequestHandler {
     static String  beforeSendBackTimestamp;
-    static DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    static DateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
     static String receiveTimestamp;
     static Response response;
     static List<Serializable> slaveTimestampList ;
@@ -41,7 +41,7 @@ public class SlaveHandler implements IRequestHandler {
                 response = new Response("That's a response message for target: " + req.getTarget() + "|| And the Slave Timestamp is: " + beforeSendBackTimestamp, true, req, slaveTimestampList);
             } else if (((ArrayList) s).get(2).toString().equals("update")) {
                 store.update(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
-                //   System.out.println("File has been updated on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
+                //   System.out.println("File has been updated on Master successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
                 preparedates();
                 response = new Response("That's a response message for target: " + req.getTarget() + "|| And the Slave Timestamp is: " + beforeSendBackTimestamp, true, req, slaveTimestampList);
 

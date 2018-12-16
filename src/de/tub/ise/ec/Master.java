@@ -5,17 +5,20 @@ import de.tub.ise.hermes.RequestHandlerRegistry;
 
 import java.io.IOException;
 
-public class Server { // Receiver
+public class Master { // Receiver
 
-    static int port = 8888;
+    static int port = 8080;
 
+    /**
+     * A simple main function to run the master server machine
+     */
     public static void main(String[] args) {
         RequestHandlerRegistry reg = RequestHandlerRegistry.getInstance();
-        reg.registerHandler("serverHandlerID", new ServerHandler());
+        reg.registerHandler("serverHandlerID", new MasterHandler());
             try {
             Receiver receiver = new Receiver(port);
             receiver.start();
-            System.out.println("Server has started ...");
+            System.out.println("Master has started ...");
         } catch (IOException e) {
             System.out.println("Connection error: " + e);
         }

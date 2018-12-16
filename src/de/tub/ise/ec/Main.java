@@ -1,22 +1,26 @@
 package de.tub.ise.ec;
-import com.sun.jmx.snmp.Timestamp;
 import de.tub.ise.hermes.*;
 import java.io.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class Main {
 
 	static Scanner sc = new Scanner(System.in);
-	static int port = 8888; // Server
-	static String host = "127.0.0.1"; // Server
+	static int port = 8080; // Master
+	static String host = "3.120.37.153"; // Master
 	static int selection;
-	static DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+	static DateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
 	static String startTimefromClient;
 	static String endTimefromClient;
 	static List<String[]> timestampsArray = new ArrayList<String[]>();
+	static List<String[]> clientAsyncList = new ArrayList<String[]>();
+
+
+	/**
+	 * a function to display a simple menu for client-user
+	 */
 	public static void displayMenu() {
 		System.out.println("\nCRUD operations: \n \n"
 				+ "1. Create \n"
@@ -28,10 +32,11 @@ public class Main {
 		selection = sc.nextInt(); // assign the user's input to the selection variable
 
 	}
-	public static void main(String[] args)
-	{
 
-
+	/**
+	 * This is the main function which runs the client server and display the command-line interface
+	 */
+	public static void main(String[] args) {
 		displayMenu();
 		if (selection == 1) {
 			sendrequest("create","Sync",2);
@@ -46,94 +51,104 @@ public class Main {
 					+ "Enter selection: ");
 			int selectionsync = sc.nextInt();
 			if ( selectionsync == 1) {
-				sendrequest("update", "Sync",5);
+				sendrequest("update", "Sync",100);
 
 			}
-			else if (selectionsync == 2)
-			{
-				sendrequest("update", "ASync",5);
+			else if (selectionsync == 2) {
+				sendrequest("update", "ASync",100);
 			}
 
 		}
 		else if (selection == 4) {
 			sendrequest("delete","Sync",2);
-
 		}
-
 	}
-	public static void sendrequest(String operationtype,String mod,int numrequest)
-	{
 
+
+	/**
+	 * prepare an arrayList with key, value, operationType and mode, then create the request and send it to master
+	 * @param operationtype: the operation type { CRUD - Create / Read / Update / Delete }
+	 * @param mode: the request type {  Sync / ASync }
+	 * @param numrequest: how many requests the client will send to the our system
+	 */
+	public static void sendrequest(String operationtype,String mode,int numrequest) {
 		ArrayList<String> item = new ArrayList<>();
 		item.add("monkey"); //Key
 		item.add("Ahmad"); //Value
-		item.add(operationtype); //action { CRUD - Create / Read / Update / Delete }
-		item.add(mod);//action {  Sync / ASync }
-
-
-
+		item.add(operationtype);
+		item.add(mode);
 		Timer t = new Timer();
 		t.schedule(new TimerTask() {
 			Response res;
 			int count = 1;
 			@Override
 			public void run() {
-				if(count == 1)
-				{
-
-					timestampsArray.add(new String[] {"client_start,", "master_receiveTimestamp,", "master_beforeSendRequestTimestamp,", "master_beforeSendBackTimestamp,", "slave_receiveTimestamp,", "slave_beforeSendBackTimestamp,", "client_get_response" });
+				if(count == 1) {
+					timestampsArray.add(new String[] {
+							"client_start,",
+							"master_receiveTimestamp,",
+							"master_beforeSendRequestTimestamp,",
+							"master_beforeSendBackTimestamp,",
+							"slave_receiveTimestamp,",
+							"slave_beforeSendBackTimestamp,",
+							"client_get_response"
+					});
+					clientAsyncList.add(new String[] {
+							"client_start,",
+							"client_end"
+					});
 				}
 				if (count == numrequest) {
 					try {
-						creatFile("file",timestampsArray);
+						createFile("sync_timestamps",timestampsArray);
+						createFile("async_client_timestamps",clientAsyncList);
 						return;
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
 				}
-				// Client: create request
 				Request req = new Request(item, "serverHandlerID", "localClient");
 				req.setOriginator("Client");
-				// Client: send request
 				Sender sender = new Sender(host, port);
-				//Pattern for showing milliseconds in the time "SSS"
-				//Using Date class
 				Date beforeDate = new Date();
 				startTimefromClient = sdf.format(beforeDate);
 				System.out.println("Start Client" + startTimefromClient);
-				if(mod.equals("Sync"))
-				{
-					//Sending message Synchronously
-					res = sender.sendMessage(req, 5000);
+				if(mode.equals("Sync")) {
+					res = sender.sendMessage(req, 50000);
 					System.out.println(res.getResponseMessage());
 				}
-				else if(mod.equals("ASync"))
-				{
-					res = sender.sendMessage(req, 5000);
+				else if(mode.equals("ASync")) {
+					res = sender.sendMessage(req, 50000);
+					writeAsyncClientTimestamp();
 					System.out.println(res.getResponseMessage());
-					//Sending message Asynchronously
-						//ServerAsyncClass async = new ServerAsyncClass();
-					//	boolean callbackReturn = sender.sendMessageAsync(req, async);
-					// create a List which contains Timestamps Array
 				}
-				//System.out.println(res.getResponseMessage());
-
-
-				if(operationtype.equals("update") && mod.equals("Sync"))
-				{
+				if(operationtype.equals("update") && mode.equals("Sync")) {
 					benchmarkUpdate(res,startTimefromClient);
 				}
 				count = count + 1;
-//				try {
-//					TimeUnit.SECONDS.sleep(2);
-//				} catch (InterruptedException e) {
-//					e.printStackTrace();
-//				}
 			}
 		}, 0, 1000);
 	}
-	public static void benchmarkUpdate(Response res,String startTimefromClient)
-	{
+
+	/**
+	 * store the client timestamps for the Async request
+	 */
+	private static void writeAsyncClientTimestamp() {
+		Date afterDate = new Date();
+		endTimefromClient = sdf.format(afterDate);
+		System.out.println("End Client" + endTimefromClient);
+		clientAsyncList.add(new String[] {
+				startTimefromClient + ",",
+				endTimefromClient
+		});
+	}
+
+	/**
+	 * get timestamps values and store them in an arrayList
+	 * @param res: the response object which is coming from master
+	 * @param startTimefromClient: timestamp at the client before send request to master
+	 */
+	public static void benchmarkUpdate(Response res,String startTimefromClient) {
 		Date afterDate = new Date();
 		endTimefromClient = sdf.format(afterDate);
 		System.out.println("End Client" + endTimefromClient);
@@ -151,28 +166,26 @@ public class Main {
 				slave_receiveTimestamp + ",",
 				slave_beforeSendBackTimestamp + ",",
 				endTimefromClient});
-
 	}
 
-	public static void creatFile(String file,List<String[]> array) throws IOException {
+	/**
+	 * create file at client with all timestamps only when the request mode is Sync
+	 * @param file: the name of the file
+	 * @param array: the arrayList which will be stored as a record in this csv file
+	 * @throws IOException
+	 */
+	public static void createFile(String file,List<String[]> array) throws IOException {
 		Date afterDate = new Date();
 		String date = sdf.format(afterDate);
 		FileWriter writer = new FileWriter(file + ".csv");
 		int size = array.size();
-//		for (String[] str : array)
-//		{
-//			writer.write(str);
-//		}
 		for (int i = 0; i < array.size(); i++) {
-				for (int j = 0; j < array.get(i).length; j++) {
-					writer.write(array.get(i)[j]);
-				}
+			for (int j = 0; j < array.get(i).length; j++) {
+				writer.write(array.get(i)[j]);
+			}
 			if (i < size - 1)
 				writer.write("\n");
-			}
-
-
-
+		}
 		writer.close();
 	}
 }

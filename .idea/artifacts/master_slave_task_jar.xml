@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="master-slave-task:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/master_slave_task_jar</output-path>
+    <root id="archive" name="master-slave-task.jar">
+      <element id="module-output" name="master-slave-task" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/hermes/out/artifacts/hermes_jar/hermes.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

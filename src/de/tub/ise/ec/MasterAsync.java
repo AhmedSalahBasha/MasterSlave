@@ -7,7 +7,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class SlaveAsyncClass implements AsyncCallbackRecipient {
+public class MasterAsync implements AsyncCallbackRecipient {
 
     public boolean isEchoSuccessful() {
         return echoSuccessful;
@@ -33,14 +33,12 @@ public class SlaveAsyncClass implements AsyncCallbackRecipient {
     public void callback(Response resp) {
         setResponse(resp);
         setEchoSuccessful(resp.responseCode());
-       // System.out.println("===== This is an Asynchronous Request From Server =====");
-       // System.out.println("Message: " + resp.getResponseMessage());
-        //Using Date class
-      //  Date date = new Date();
-        //Pattern for showing milliseconds in the time "SSS"
-        //DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-       // String timestamp = sdf.format(date);
-        //System.out.println("END MASTER(recieve Response from Slave):" + timestamp);
-        ServerHandler.preparedates(resp);
+        System.out.println("===== This is an Asynchronous Request From Client =====");
+        System.out.println("Message: " + resp.getResponseMessage());
+        Date date = new Date();
+        DateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
+        String timestamp = sdf.format(date);
+        System.out.println("MasterAsync: Timestamp AFTER Received a response from Master >> " + timestamp);
+        Main.benchmarkUpdate(resp,Main.startTimefromClient);
     }
 }

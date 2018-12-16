@@ -1,13 +1,12 @@
 package de.tub.ise.ec;
 
-import com.sun.jmx.snmp.Timestamp;
 import de.tub.ise.ec.kv.FileSystemKVStore;
 import de.tub.ise.ec.kv.KeyValueInterface;
 import de.tub.ise.hermes.IRequestHandler;
 import de.tub.ise.hermes.Request;
 import de.tub.ise.hermes.Response;
 import de.tub.ise.hermes.Sender;
-import jdk.internal.dynalink.beans.StaticClass;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
@@ -17,10 +16,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class ServerHandler implements IRequestHandler {
+public class MasterHandler implements IRequestHandler {
     static int port = 8080;
-    static String host = "127.0.0.2"; // slave
-    static DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    static String host = "18.185.137.85"; // slave
+    static DateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
     static String receiveTimestamp;
     static String beforeSendRequestTimestamp;
     static List <String[]> timestampsArray = new ArrayList<String[]>();
@@ -28,6 +27,7 @@ public class ServerHandler implements IRequestHandler {
     static String mod ="";
     static List<Serializable> serverTimestampList ;//= new ArrayList<>();
     static Response response;
+
     @Override
     public Response handleRequest(Request req) {
         serverTimestampList = new ArrayList<>();
@@ -46,7 +46,7 @@ public class ServerHandler implements IRequestHandler {
                 store.store(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
                 System.out.println();
                 sendrequesttoslave(req);
-                response = new Response("File has been stored on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()),true,req,serverTimestampList);
+                response = new Response("File has been stored on Master successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()),true,req,serverTimestampList);
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("read")) {
                 Object valuesObject = store.getValue(((ArrayList) s).get(0).toString());System.out.println("Value is :  " + valuesObject.toString());
@@ -54,29 +54,29 @@ public class ServerHandler implements IRequestHandler {
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("update")) {
                 store.update(((ArrayList) s).get(0).toString(), ((ArrayList) s).get(1).toString());
-               System.out.println("File has been updated on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
+               System.out.println("File has been updated on Master successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()));
                 sendrequesttoslave(req);
-                response = new Response("File has been updated on Server successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()),true,req,serverTimestampList);
+                response = new Response("File has been updated on Master successfully with value: " + store.getValue(((ArrayList) s).get(0).toString()),true,req,serverTimestampList);
                 break;
             } else if (((ArrayList) s).get(2).toString().equals("delete")) {
                 store.delete(((ArrayList) s).get(0).toString());
-                System.out.println("File has been deleted on Server successfully!");
+                System.out.println("File has been deleted on Master successfully!");
                 sendrequesttoslave(req);
-                response = new Response("File has been deleted on Server successfully!",true,req,serverTimestampList);
+                response = new Response("File has been deleted on Master successfully!",true,req,serverTimestampList);
                 break;
             }
         }
         return response;
     }
-    // Server: create request
-    public void sendrequesttoslave(Request req)
-    {
+
+    // Master: create request
+    public void sendrequesttoslave(Request req) {
         Date beforeSendRequestDate = new Date();
         beforeSendRequestTimestamp = sdf.format(beforeSendRequestDate);
         System.out.println("After Commit MASTER: " + beforeSendRequestTimestamp);
         Request slaveRequest = new Request(req.getItems(), "slaveHandlerID", "server");
         slaveRequest.setOriginator("Master");
-        // Server: send request
+        // Master: send request
         Sender sender = new Sender(host, port);
         Response slaveResponse = null;
         if( mod.equals("Sync"))
@@ -89,27 +89,28 @@ public class ServerHandler implements IRequestHandler {
             ASyncslave(sender,slaveRequest);
         }
     }
+
     @Override
     public boolean requiresResponse() {
         return true;
     }
-    public Response syncslave(Sender sender,Request slaveRequest)
-    {
+
+    public Response syncslave(Sender sender,Request slaveRequest) {
         //Sending message Synchronously
          Response slaveResponse = sender.sendMessage(slaveRequest, 5000);
        // System.out.println(slaveResponse.getResponseMessage());
         return  slaveResponse;
     }
-    public void ASyncslave(Sender sender,Request slaveRequest)
-    {
+
+    public void ASyncslave(Sender sender,Request slaveRequest) {
         //Sending message Asynchronously
-        SlaveAsyncClass async = new SlaveAsyncClass();
+        SlaveAsync async = new SlaveAsync();
         Response response = null;
         boolean responseb = sender.sendMessageAsync(slaveRequest,async);
-
     }
-    public static void preparedates(Response slaveResponse)
-    {   id++;
+
+    public static void preparedates(Response slaveResponse) {
+        id++;
         Date beforeSendBackDate = new Date();
         String beforeSendBackTimestamp = sdf.format(beforeSendBackDate);
         System.out.println(" Start Slave " + slaveResponse.getItems().get(0));
@@ -141,8 +142,8 @@ public class ServerHandler implements IRequestHandler {
             }
         }
     }
-    public static void creatFile(String file,List<String[]> array) throws IOException {
 
+    public static void creatFile(String file,List<String[]> array) throws IOException {
         FileWriter writer = new FileWriter(file + ".csv");
         int size = array.size();
         for (int i = 0; i < array.size(); i++) {
